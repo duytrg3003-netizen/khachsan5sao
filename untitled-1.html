@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>inperia sky gaden</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f3f5f8;color:#222}
+header{background:#1d3557;color:#fff;padding:12px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between; position:sticky; top:0; z-index:100;}
+header h1{margin:0;font-size:20px; cursor:pointer;}
+nav button,.btn{background:#457b9d;color:#fff;border:0;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:14px;margin-bottom:4px;}
+nav button:hover,.btn:hover{background:#2a6f97}
+.btn.red{background:#c0392b}.btn.green{background:#2d936c}.btn.gray{background:#888}
+
+/* Style Landing Page */
+.landing {text-align:center; padding-bottom:40px; background:#fff; border-radius:12px; box-shadow:0 4px 15px #0002; overflow:hidden; margin-top:20px;}
+.landing img.banner {width:100%; height:450px; object-fit:cover; object-position:center 55%; display:block; margin-bottom:20px;}
+.landing h1 {font-size:36px; color:#1d3557; margin:10px 0; text-transform: capitalize;}
+.landing p.sub {font-size:18px; color:#457b9d; margin-bottom:30px; font-weight:600;}
+.btn-large {background:#e63946; color:#fff; font-size:18px; padding:15px 40px; border:none; border-radius:30px; cursor:pointer; font-weight:bold; box-shadow:0 4px 10px #e6394666; transition:0.2s;}
+.btn-large:hover {background:#d62828; transform:translateY(-2px);}
+
+.services {margin-top: 40px;}
+.services h2 {text-align:center; color:#1d3557; font-size:28px; margin-bottom:20px;}
+
+main{max-width:1100px;margin:20px auto;padding:0 15px; min-height: 80vh;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+
+/* Căn chỉnh nút bằng Flexbox cho thẳng hàng */
+.card{background:#fff;border-radius:10px;box-shadow:0 1px 4px #0002;overflow:hidden; display:flex; flex-direction:column;}
+.card img,.noimg{width:100%;height:160px;object-fit:cover;background:#ccd;display:flex;align-items:center;justify-content:center;color:#667; text-align:center; flex-direction:column;}
+.card .pic{cursor:pointer}
+.card .in{padding:12px; display:flex; flex-direction:column; flex:1;}
+.card .in p {flex:1; margin: 8px 0;} 
+.btn-wrap {margin-top:auto; display:flex; gap:5px; flex-wrap:wrap; padding-top:10px;}
+
+.price{color:#c0392b;font-weight:700}
+.box{background:#fff;border-radius:10px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px #0002}
+input,select,textarea{padding:8px;border:1px solid #bbb;border-radius:6px;font-size:14px;width:100%;margin:4px 0 10px}
+label{font-size:13px;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:14px;background:#fff}
+th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left}
+th{background:#e9eef5}
+.wrap{overflow-x:auto}
+.tag{padding:2px 8px;border-radius:10px;font-size:12px;color:#fff;background:#888}
+.tag.ok{background:#2d936c}.tag.wait{background:#e08e0b}.tag.bad{background:#c0392b}
+.small{max-width:380px;margin:30px auto}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1;min-width:140px}
+.big{width:100%;max-height:430px;object-fit:cover;border-radius:8px;display:block}
+.noimg.big{height:260px}
+.thumbs{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.th{position:relative}
+.th img{width:95px;height:68px;object-fit:cover;border-radius:6px;cursor:pointer;border:3px solid transparent}
+.th img.sel{border-color:#e63946}
+.x{position:absolute;top:-7px;right:-7px;background:#c0392b;color:#fff;border-radius:50%;width:20px;height:20px;text-align:center;line-height:20px;font-size:14px;cursor:pointer}
+
+/* Cam mock */
+.cam-rec {color: red; font-weight: bold; font-size: 14px; margin-top: 10px; animation: blink 1s infinite;}
+@keyframes blink { 50% {opacity: 0;} }
+</style>
+</head>
+<body>
+<header>
+  <h1 onclick="go('landing')">🏨 inperia sky gaden</h1>
+  <nav id="nav"></nav>
+</header>
+<main id="app"></main>
+
+<script>
+// ====== DỮ LIỆU ======
+const OWNER = {user:"chu", pass:"123456"}; 
+let db = {ver:4, users:[], rooms:[], bookings:[], employees:[], qrImg: ""}; 
+let session = null;
+let view = "landing";
+let curRoom = null, curImg = 0, bookRoom = null;
+
+const pic = (id,n) => `https://picsum.photos/seed/hotel${id}${n}/800/500`;
+const mk = (id,name,price,desc) => ({id,name,price,desc,imgs:[pic(id,"a"),pic(id,"b")]});
+
+const SAMPLES = [
+  mk(1, "Phòng 001 (Tiêu chuẩn)", 300000, "1 giường đôi, quạt mát, wifi miễn phí."),
+  mk(2, "Phòng 002 (Tiêu chuẩn)", 300000, "1 giường đôi, có cửa sổ nhỏ, wifi miễn phí."),
+  mk(3, "Phòng 003 (Tiêu chuẩn)", 300000, "1 giường đôi, phòng tắm riêng."),
+  mk(4, "Phòng 004 (Tiêu chuẩn)", 300000, "2 giường đơn, phù hợp 2 người."),
+  mk(5, "Phòng 005 (Tiêu chuẩn)", 300000, "1 giường đôi, giá tiết kiệm."),
+  mk(6, "Phòng 006 (Cao cấp)", 500000, "1 giường lớn, có điều hòa, TV thông minh."),
+  mk(7, "Phòng 007 (Cao cấp)", 500000, "1 giường lớn, có điều hòa, tủ lạnh mini."),
+  mk(8, "Phòng 008 (Cao cấp)", 500000, "2 giường đơn, phòng rộng 25m2."),
+  mk(9, "Phòng 009 (Cao cấp)", 500000, "1 giường lớn, bàn làm việc, view thành phố."),
+  mk(10, "Phòng 010 (Cao cấp)", 500000, "1 giường lớn, máy sấy, bình siêu tốc."),
+];
+
+function load(){
+  try{ db = Object.assign(db, JSON.parse(localStorage.getItem("hotelDB")) || {}); }catch(e){}
+  try{ session = JSON.parse(sessionStorage.getItem("hotelSession")); }catch(e){}
+  if(!db.ver || db.ver<4 || db.rooms.length===0){
+    if(!db.rooms || db.rooms.length===0){
+      db.rooms = []; 
+      SAMPLES.forEach(s=> db.rooms.push(JSON.parse(JSON.stringify(s))) );
+    }
+    db.employees = db.employees || [];
+    db.ver=4; save();
+  }
+}
+function save(){
+  try{ localStorage.setItem("hotelDB", JSON.stringify(db)); }
+  catch(e){ alert("Bộ nhớ trình duyệt đầy, hãy xóa bớt ảnh."); }
+}
+function setSession(s){ session=s; sessionStorage.setItem("hotelSession", JSON.stringify(s)); }
+
+const $ = id => document.getElementById(id);
+const money = n => Number(n).toLocaleString("vi-VN")+" đ";
+const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const today = () => new Date().toISOString().slice(0,10);
+const nights = (a,b) => Math.round((new Date(b)-new Date(a))/86400000);
+function roomName(id){ const r=db.rooms.find(r=>r.id==id); return r?r.name:"(đã xóa)"; }
+function overlap(roomId,a,b){
+  return db.bookings.some(x=>x.roomId==roomId && x.status!=="Đã hủy" && x.status!=="Đã trả phòng" && a<x.out && b>x.in);
+}
+function go(v){ view=v; render(); window.scrollTo({top:0, behavior:'smooth'}); }
+function isOwner(){ return session && session.role==="owner"; }
+
+function render(){
+  if(view === "landing"){
+    $("nav").innerHTML = ""; 
+    vLanding();
+    return;
+  }
+
+  let nav = `<button onclick="go('rooms')">Danh sách phòng</button>`;
+  if(!session) nav += `<button onclick="go('login')">Đăng nhập</button><button onclick="go('register')">Tạo tài khoản</button>`;
+  else if(session.role==="guest") nav += `<button onclick="go('mybook')">Đặt phòng của tôi</button><button onclick="logout()">Thoát (${esc(session.user)})</button>`;
+  else nav += `
+    <button onclick="go('adminRooms')">Phòng</button>
+    <button onclick="go('adminBook')">Đơn đặt</button>
+    <button onclick="go('schedule')">Lịch</button>
+    <button onclick="go('adminStaff')">Nhân viên</button>
+    <button onclick="go('adminCamera')">Camera</button>
+    <button onclick="logout()">Thoát (chủ)</button>`;
+  $("nav").innerHTML = nav;
+  
+  const views = {rooms:vRooms, detail:vDetail, login:vLogin, register:vRegister, mybook:vMyBook, book:vBook, adminRooms:vAdminRooms, adminBook:vAdminBook, schedule:vSchedule, adminStaff:vAdminStaff, adminCamera:vAdminCamera};
+  if(views[view]) views[view]();
+}
+function logout(){ session=null; sessionStorage.removeItem("hotelSession"); go("landing"); }
+
+function vLanding(){
+  $("app").innerHTML=`
+  <div class="landing">
+    <!-- Ảnh bìa khách sạn (Tòa nhà cao tầng về đêm) -->
+    <img src="pexels-phamthe-32755076.jpg" alt="Ảnh bìa khách sạn" class="banner">
+    
+    <h1>inperia sky gaden</h1>
+    <p class="sub">📍 Địa chỉ: 10 Đinh Tiên Hoàng, Quận Hoàn Kiếm, Hà Nội</p>
+    <button class="btn-large" onclick="go('rooms')">Vào xem phòng & Đặt phòng ➔</button>
+  </div>
+  
+  <div class="services">
+    <h2>Dịch vụ & Tiện ích nổi bật</h2>
+    <div class="grid">
+      <div class="card">
+        <!-- Ảnh Buffet -->
+        <img src="pexels-westernhotel-4873365.jpg" alt="Buffet">
+        <div class="in">
+          <h3>Nhà hàng & Buffet</h3>
+          <p>Thưởng thức tinh hoa ẩm thực Á-Âu với thực đơn phong phú. Phục vụ bữa sáng miễn phí cho toàn bộ khách lưu trú.</p>
+        </div>
+      </div>
+      <div class="card">
+        <!-- Ảnh Phòng Gym -->
+        <img src="pexels-nica-s-photo-235373438-13863730.jpg" alt="Gym">
+        <div class="in">
+          <h3>Phòng Gym hiện đại</h3>
+          <p>Trang bị hệ thống máy tập tối tân, không gian rộng rãi. Phục vụ 24/7 để bạn duy trì thói quen tập luyện.</p>
+        </div>
+      </div>
+      <div class="card">
+        <!-- Ảnh Hồ bơi -->
+        <img src="pexels-quang-nguyen-vinh-222549-14022373.jpg" alt="Pool">
+        <div class="in">
+          <h3>Hồ bơi vô cực</h3>
+          <p>Thư giãn tại hồ bơi, ngắm nhìn toàn cảnh thành phố cực chill vào mỗi buổi bình minh và hoàng hôn.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bộ sưu tập View Hà Nội -->
+  <div class="services" style="margin-top: 40px; padding-bottom: 40px;">
+    <h2>View ngắm nhìn toàn cảnh Hà Nội</h2>
+    <p style="text-align:center; font-size: 16px; color: #457b9d; margin-bottom: 20px;">Trải nghiệm ngắm nhìn thủ đô ngàn năm văn hiến ngay từ cửa sổ phòng bạn.</p>
+    
+    <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+      <img src="pexels-nguyen-ngoc-tien-1321490019-35253225.jpg" style="width:100%; height:220px; object-fit:cover; border-radius:8px; box-shadow:0 2px 8px #0003;" alt="Tháp Rùa về đêm">
+      <img src="pexels-anhtuan-21081068.jpg" style="width:100%; height:220px; object-fit:cover; border-radius:8px; box-shadow:0 2px 8px #0003;" alt="Hồ Gươm">
+      <img src="pexels-toan-van-1745332-20988467.jpg" style="width:100%; height:220px; object-fit:cover; border-radius:8px; box-shadow:0 2px 8px #0003;" alt="Ven hồ">
+      <img src="pexels-h-ng-ph-m-1332058235-36464867.jpg" style="width:100%; height:220px; object-fit:cover; border-radius:8px; box-shadow:0 2px 8px #0003;" alt="Phố phường Hà Nội">
+      <img src="pexels-nimitclix-30739685.jpg" style="width:100%; height:220px; object-fit:cover; border-radius:8px; box-shadow:0 2px 8px #0003;" alt="Đường phố rợp bóng cây">
+    </div>
+  </div>`;
+}
+
+function vRegister(){
+  $("app").innerHTML=`<div class="box small"><h2>Tạo tài khoản</h2>
+  <label>Họ tên</label><input id="r_name">
+  <label>Số điện thoại</label><input id="r_phone">
+  <label>Tên đăng nhập</label><input id="r_user">
+  <label>Mật khẩu</label><input id="r_pass" type="password">
+  <button class="btn" onclick="doRegister()">Đăng ký</button></div>`;
+}
+function doRegister(){
+  const name=$("r_name").value.trim(), phone=$("r_phone").value.trim(), user=$("r_user").value.trim(), pass=$("r_pass").value;
+  if(!name||!phone||!user||pass.length<4) return alert("Điền đủ thông tin, mật khẩu từ 4 ký tự.");
+  if(user===OWNER.user || db.users.some(u=>u.user===user)) return alert("Tên đăng nhập đã tồn tại.");
+  db.users.push({name,phone,user,pass}); save();
+  setSession({role:"guest",user}); go("rooms");
+}
+
+function vLogin(){
+  $("app").innerHTML=`<div class="box small"><h2>Đăng nhập</h2>
+  <label>Tên đăng nhập</label><input id="l_user">
+  <label>Mật khẩu</label><input id="l_pass" type="password">
+  <button class="btn" onclick="doLogin()">Đăng nhập</button></div>`;
+}
+function doLogin(){
+  const user=$("l_user").value.trim(), pass=$("l_pass").value;
+  if(user===OWNER.user && pass===OWNER.pass){ setSession({role:"owner"}); return go("adminBook"); }
+  const u=db.users.find(u=>u.user===user && u.pass===pass);
+  if(!u) return alert("Sai tên đăng nhập hoặc mật khẩu.");
+  setSession({role:"guest",user}); go("rooms");
+}
+
+function thumb(r){
+  const s=(r.imgs||[])[0];
+  return s?`<img src="${s}" onerror="this.style.display='none'">`:`<div class="noimg">Chưa có ảnh</div>`;
+}
+function openRoom(id){ curRoom=id; curImg=0; go("detail"); }
+
+function vRooms(){
+  $("app").innerHTML=`<h2>Các phòng của khách sạn</h2><div class="grid">`+db.rooms.map(r=>`
+  <div class="card"><div class="pic" onclick="openRoom(${r.id})">${thumb(r)}</div>
+  <div class="in">
+    <h3>${esc(r.name)}</h3><div class="price">${money(r.price)} / đêm</div>
+    <p>${esc(r.desc)}</p>
+    <small>${(r.imgs||[]).length} ảnh</small>
+    <div class="btn-wrap">
+      <button class="btn gray" onclick="openRoom(${r.id})">Xem chi tiết</button>
+      <button class="btn" onclick="startBook(${r.id})">Đặt phòng</button>
+    </div>
+  </div></div>`).join("")+`</div>`;
+}
+
+function vDetail(){
+  const r=db.rooms.find(r=>r.id==curRoom); if(!r) return go("rooms");
+  const imgs=r.imgs||[]; if(curImg>=imgs.length) curImg=0;
+  const owner=isOwner(), back=owner?"adminRooms":"rooms";
+  $("app").innerHTML=`<button class="btn gray" onclick="go('${back}')">← Quay lại</button>
+  <div class="box" style="margin-top:12px"><h2>${esc(r.name)}</h2>
+  ${imgs.length?`<img class="big" src="${imgs[curImg]}">`:`<div class="noimg big">Chưa có ảnh</div>`}
+  <div class="thumbs">`+imgs.map((s,i)=>`<div class="th"><img src="${s}" class="${i==curImg?"sel":""}" onclick="curImg=${i};render()">${owner?`<span class="x" onclick="delPhoto(${r.id},${i})">×</span>`:""}</div>`).join("")+`</div>
+  <div class="price" style="font-size:20px">${money(r.price)} / đêm</div>
+  <p>${esc(r.desc)}</p>
+  ${owner?`<label>Thêm ảnh thật của phòng (chọn được nhiều ảnh)</label><input type="file" accept="image/*" multiple onchange="addPhotos(${r.id},this)">`
+         :`<button class="btn green" onclick="startBook(${r.id})">Đặt phòng này</button>`}
+  </div>`;
+}
+function addPhotos(id,inp){
+  const files=[...inp.files]; if(!files.length) return;
+  const r=db.rooms.find(r=>r.id==id); r.imgs=r.imgs||[];
+  Promise.all(files.map(readImg)).then(list=>{ r.imgs.push(...list); save(); render(); });
+}
+function delPhoto(id,i){
+  if(!confirm("Xóa ảnh này?")) return;
+  db.rooms.find(r=>r.id==id).imgs.splice(i,1); curImg=0; save(); render();
+}
+function startBook(id){
+  if(!session){ alert("Hãy đăng nhập để đặt phòng."); return go("login"); }
+  if(isOwner()) return alert("Hãy dùng tài khoản khách để đặt phòng.");
+  bookRoom=id; go("book");
+}
+
+function vBook(){
+  const r=db.rooms.find(r=>r.id==bookRoom);
+  $("app").innerHTML=`<div class="box small"><h2>Đặt ${esc(r.name)}</h2>
+  <div class="price">${money(r.price)} / đêm</div>
+  <label>Ngày nhận phòng</label><input type="date" id="b_in" min="${today()}" onchange="calc()">
+  <label>Ngày trả phòng</label><input type="date" id="b_out" min="${today()}" onchange="calc()">
+  <label>Hình thức thanh toán</label>
+  <select id="b_pay" onchange="toggleQR()">
+    <option value="cash">Tiền mặt (trả khi nhận phòng)</option>
+    <option value="online">Thanh toán online (Chuyển khoản QR)</option>
+  </select>
+  
+  <div id="qr_box" style="display:none; text-align:center; margin-top:15px; padding:15px; border:1px dashed #457b9d; border-radius:8px; background:#f0f8ff;">
+    <p style="margin-top:0; font-size:14px; font-weight:bold; color:#1d3557;">Quét mã QR dưới đây để thanh toán</p>
+    ${db.qrImg ? `<img src="${db.qrImg}" style="max-width:100%; max-height:250px; border-radius:8px; border:1px solid #ccc;">` : `<p style="color:red; font-size:13px; font-style:italic;">Khách sạn chưa cài đặt mã QR. Vui lòng thanh toán tiền mặt.</p>`}
+    <p style="margin-bottom:0; font-size:13px; color:#333; margin-top:10px;">Nội dung CK: <b style="color:#e63946">${session.user} thanh toan ${esc(r.name)}</b></p>
+  </div>
+  <p id="b_total"></p>
+  <button class="btn green" onclick="doBook()">Xác nhận đặt phòng</button> <button class="btn gray" onclick="go('rooms')">Hủy</button></div>`;
+}
+function toggleQR(){
+  $("qr_box").style.display = $("b_pay").value === "online" ? "block" : "none";
+}
+function calc(){
+  const a=$("b_in").value,b=$("b_out").value,r=db.rooms.find(r=>r.id==bookRoom);
+  $("b_total").innerHTML = (a&&b&&b>a) ? `${nights(a,b)} đêm. Tổng tiền: <b class="price">${money(nights(a,b)*r.price)}</b>` : "";
+}
+function doBook(){
+  const a=$("b_in").value,b=$("b_out").value,pay=$("b_pay").value,r=db.rooms.find(r=>r.id==bookRoom);
+  if(!a||!b||b<=a) return alert("Chọn ngày nhận và trả hợp lệ.");
+  if(a<today()) return alert("Ngày nhận phòng không ở quá khứ.");
+  if(overlap(bookRoom,a,b)) return alert("Phòng đã có người đặt trong thời gian này.");
+  const total=nights(a,b)*r.price;
+  const bk={id:Date.now(),roomId:bookRoom,guest:session.user,in:a,out:b,total,method:pay,paid:false,status:"Chờ nhận phòng"};
+  if(pay==="online"){
+    if(!db.qrImg) return alert("Hệ thống chưa có ảnh QR, vui lòng chọn thanh toán Tiền mặt.");
+    if(!confirm("XÁC NHẬN CHUYỂN KHOẢN\nBạn có chắc chắn đã chuyển khoản thành công?")) return;
+    bk.paid=true; 
+  }
+  db.bookings.push(bk); save(); alert("Đặt phòng thành công!"); go("mybook");
+}
+function vMyBook(){
+  const list=db.bookings.filter(b=>b.guest===session.user);
+  $("app").innerHTML=`<h2>Đặt phòng của tôi</h2><div class="wrap">`+tableBookings(list,false)+`</div>`;
+}
+function cancelBook(id){
+  const b=db.bookings.find(b=>b.id==id);
+  if(b.status!=="Chờ nhận phòng") return;
+  if(confirm("Hủy đặt phòng này?")){ b.status="Đã hủy"; save(); render(); }
+}
+
+function payTag(b){ return b.paid?`<span class="tag ok">Đã thanh toán</span>`:`<span class="tag wait">Chưa thanh toán</span>`; }
+function statTag(b){ const c=b.status==="Đang ở"?"ok":b.status==="Đã hủy"?"bad":b.status==="Chờ nhận phòng"?"wait":""; return `<span class="tag ${c}">${b.status}</span>`; }
+function tableBookings(list,admin){
+  if(!list.length) return "<p>Chưa có đặt phòng nào.</p>";
+  return `<table><tr><th>Phòng</th><th>Khách</th><th>Vào</th><th>Ra</th><th>Tổng tiền</th><th>Thanh toán</th><th>Trạng thái</th><th></th></tr>`+
+  [...list].reverse().map(b=>{
+    let act="";
+    if(admin){
+      if(!b.paid && b.status!=="Đã hủy") act+=`<button class="btn green" onclick="markPaid(${b.id})">Thu tiền</button> `;
+      if(b.status==="Chờ nhận phòng") act+=`<button class="btn" onclick="setStatus(${b.id},'Đang ở')">Nhận phòng</button> `;
+      if(b.status==="Đang ở") act+=`<button class="btn red" onclick="setStatus(${b.id},'Đã trả phòng')">Trả phòng</button> `;
+      if(b.status==="Chờ nhận phòng") act+=`<button class="btn gray" onclick="cancelBook(${b.id})">Hủy</button>`;
+    } else if(b.status==="Chờ nhận phòng") act=`<button class="btn gray" onclick="cancelBook(${b.id})">Hủy</button>`;
+    return `<tr><td>${esc(roomName(b.roomId))}</td><td>${esc(guestLabel(b.guest))}</td><td>${b.in}</td><td>${b.out}</td><td>${money(b.total)}</td><td>${payTag(b)}</td><td>${statTag(b)}</td><td>${act}</td></tr>`;
+  }).join("")+`</table>`;
+}
+function guestLabel(u){ const g=db.users.find(x=>x.user===u); return g?`${g.name} (${g.phone})`:u; }
+function markPaid(id){ const b=db.bookings.find(b=>b.id==id); b.paid=true; save(); render(); }
+function setStatus(id,s){ const b=db.bookings.find(b=>b.id==id); b.status=s; if(s==="Đã trả phòng") b.paid=true; save(); render(); }
+
+function needOwner(){ if(!isOwner()){ go("login"); return false;} return true; }
+function vAdminRooms(){
+  if(!needOwner()) return;
+  $("app").innerHTML=`<div class="box"><h2>Thêm phòng mới</h2>
+  <div class="row"><div><label>Tên phòng</label><input id="n_name"></div><div><label>Giá / đêm (đ)</label><input id="n_price" type="number" min="0"></div></div>
+  <label>Mô tả</label><input id="n_desc">
+  <button class="btn green" onclick="addRoom()">Thêm phòng</button></div>
+  <h2>Danh sách phòng</h2><div class="grid">`+db.rooms.map(r=>`
+  <div class="card"><div class="pic" onclick="openRoom(${r.id})">${thumb(r)}</div>
+  <div class="in">
+    <b>${esc(r.name)}</b><div class="price">${money(r.price)} / đêm</div><p>${esc(r.desc)}</p>
+    <div class="btn-wrap">
+      <button class="btn gray" onclick="openRoom(${r.id})">Xem/Thêm ảnh</button>
+      <button class="btn" onclick="editRoom(${r.id})">Sửa</button>
+      <button class="btn red" onclick="delRoom(${r.id})">Xóa</button>
+    </div>
+  </div></div>`).join("")+`</div>`;
+}
+function readImg(file){
+  return new Promise(res=>{
+    const fr=new FileReader();
+    fr.onload=()=>{ const im=new Image(); im.onload=()=>{
+      const s=Math.min(1,700/im.width), c=document.createElement("canvas");
+      c.width=im.width*s; c.height=im.height*s; c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+      res(c.toDataURL("image/jpeg",0.7)); }; im.src=fr.result; };
+    fr.readAsDataURL(file);
+  });
+}
+function addRoom(){
+  const name=$("n_name").value.trim(), price=+$("n_price").value, desc=$("n_desc").value.trim();
+  if(!name||!price) return alert("Nhập tên phòng và giá.");
+  db.rooms.push({id:Date.now(),name,price,desc,imgs:[]}); save(); render();
+}
+function editRoom(id){
+  const r=db.rooms.find(r=>r.id==id);
+  const n=prompt("Tên phòng:",r.name); if(n===null) return;
+  const p=prompt("Giá / đêm (đ):",r.price); if(p===null) return;
+  const d=prompt("Mô tả:",r.desc); if(d===null) return;
+  r.name=n.trim()||r.name; r.price=+p||r.price; r.desc=d; save(); render();
+}
+function delRoom(id){
+  if(db.bookings.some(b=>b.roomId==id && b.status!=="Đã trả phòng" && b.status!=="Đã hủy")) return alert("Phòng đang có lịch đặt, chưa thể xóa.");
+  if(confirm("Xóa phòng này?")){ db.rooms=db.rooms.filter(r=>r.id!=id); save(); render(); }
+}
+
+function vAdminBook(){
+  if(!needOwner()) return;
+  const paid=db.bookings.filter(b=>b.paid).reduce((s,b)=>s+b.total,0);
+  const unpaid=db.bookings.filter(b=>!b.paid && b.status!=="Đã hủy").reduce((s,b)=>s+b.total,0);
+  $("app").innerHTML=`
+  <h2>Cài đặt Thanh toán Online</h2>
+  <div class="box">
+    <label>Tải lên ảnh Mã QR Ngân hàng (Để khách quét):</label>
+    ${db.qrImg ? `<div style="margin:15px 0;"><img src="${db.qrImg}" style="max-height:200px; border-radius:8px; border:1px solid #ddd;"></div>` : `<p style="color:#888; font-size:13px; margin:10px 0;">Chưa có ảnh QR</p>`}
+    <input type="file" accept="image/*" onchange="uploadQR(this)">
+  </div>
+  <h2>Tất cả đặt phòng</h2>
+  <div class="row"><div class="box">Đã thu: <b class="price">${money(paid)}</b></div><div class="box">Chưa thu: <b class="price">${money(unpaid)}</b></div><div class="box">Khách đã ĐK: <b>${db.users.length}</b></div></div>
+  <div class="wrap">`+tableBookings(db.bookings,true)+`</div>`;
+}
+function uploadQR(inp){
+  const files = [...inp.files];
+  if(!files.length) return;
+  readImg(files[0]).then(res => { db.qrImg = res; save(); render(); alert("Tải lên mã QR thành công!"); });
+}
+function vSchedule(){
+  if(!needOwner()) return;
+  $("app").innerHTML=`<h2>Lịch vào/ra của từng phòng</h2>`+db.rooms.map(r=>{
+    const list=db.bookings.filter(b=>b.roomId==r.id && b.status!=="Đã hủy").sort((a,b)=>a.in.localeCompare(b.in));
+    const busy=list.some(b=>b.status==="Đang ở");
+    return `<div class="box"><h3>${esc(r.name)} <span class="tag ${busy?"bad":"ok"}">${busy?"Đang có khách":"Đang trống"}</span></h3>`+
+    (list.length?`<table><tr><th>Khách</th><th>Vào lúc</th><th>Ra lúc</th><th>Trạng thái</th></tr>`+list.map(b=>`<tr><td>${esc(guestLabel(b.guest))}</td><td>${b.in}</td><td>${b.out}</td><td>${statTag(b)}</td></tr>`).join("")+`</table>`:"<p>Chưa có lịch đặt.</p>")+`</div>`;
+  }).join("");
+}
+
+function vAdminStaff(){
+  if(!needOwner()) return;
+  const totalSal = db.employees.reduce((sum, e) => sum + e.salary, 0);
+  $("app").innerHTML = `<h2>Quản lý Nhân sự & Số liệu</h2>
+  <div class="row">
+    <div class="box">Tổng số nhân viên: <b style="font-size:18px;color:#1d3557">${db.employees.length}</b> người</div>
+    <div class="box">Tổng quỹ lương: <b class="price" style="font-size:18px">${money(totalSal)}</b> / tháng</div>
+  </div>
+  <div class="box">
+    <h3>Thêm nhân viên mới</h3>
+    <div class="row">
+      <div><label>Họ tên</label><input id="s_name" placeholder="VD: Nguyễn Văn A"></div>
+      <div><label>Chức vụ</label><input id="s_role" placeholder="VD: Lễ tân"></div>
+      <div><label>Lương (đ/tháng)</label><input id="s_sal" type="number" min="0"></div>
+      <div><label>Số điện thoại</label><input id="s_phone"></div>
+    </div>
+    <button class="btn green" onclick="addStaff()">+ Thêm nhân sự</button>
+  </div>
+  <h3>Danh sách nhân viên</h3>
+  <div class="wrap">
+    <table>
+      <tr><th>Họ tên</th><th>Chức vụ</th><th>SĐT</th><th>Lương/Tháng</th><th>Hành động</th></tr>
+      ${db.employees.length ? db.employees.map((e, i) => `<tr>
+        <td><b>${esc(e.name)}</b></td>
+        <td>${esc(e.role)}</td>
+        <td>${esc(e.phone)}</td>
+        <td><b class="price">${money(e.salary)}</b></td>
+        <td><button class="btn red" onclick="delStaff(${i})">Xóa</button></td>
+      </tr>`).join("") : `<tr><td colspan="5">Chưa có dữ liệu nhân viên.</td></tr>`}
+    </table>
+  </div>`;
+}
+function addStaff(){
+  const name=$("s_name").value.trim(), role=$("s_role").value.trim(), salary=+$("s_sal").value, phone=$("s_phone").value.trim();
+  if(!name || !role || !salary) return alert("Vui lòng điền đủ Tên, Chức vụ và Lương.");
+  db.employees.push({name, role, salary, phone});
+  save(); render();
+}
+function delStaff(idx){
+  if(!confirm("Xóa nhân viên này khỏi hệ thống?")) return;
+  db.employees.splice(idx, 1);
+  save(); render();
+}
+
+function vAdminCamera(){
+  if(!needOwner()) return;
+  $("app").innerHTML = `<h2>Hệ thống Camera Giám sát (Mô phỏng)</h2>
+  <p>Màn hình giám sát các khu vực chung của khách sạn.</p>
+  <div class="grid">
+    <div class="box" style="padding:10px; background:#000;">
+      <div class="noimg big" style="background:#222; border:1px solid #444; color:#fff;">Khu vực Sảnh chính<div class="cam-rec">● REC</div></div>
+    </div>
+    <div class="box" style="padding:10px; background:#000;">
+      <div class="noimg big" style="background:#222; border:1px solid #444; color:#fff;">Hành lang tầng 1<div class="cam-rec">● REC</div></div>
+    </div>
+    <div class="box" style="padding:10px; background:#000;">
+      <div class="noimg big" style="background:#222; border:1px solid #444; color:#fff;">Khu vực Nhà hàng<div class="cam-rec">● REC</div></div>
+    </div>
+    <div class="box" style="padding:10px; background:#000;">
+      <div class="noimg big" style="background:#222; border:1px solid #444; color:#fff;">Khu vực Bể bơi<div class="cam-rec">● REC</div></div>
+    </div>
+  </div>`;
+}
+
+load(); render();
+</script>
+</body>
+</html>
